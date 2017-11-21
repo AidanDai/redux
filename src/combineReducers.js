@@ -1,6 +1,6 @@
-import { ActionTypes } from './createStore'
-import isPlainObject from 'lodash/isPlainObject'
+import ActionTypes from './utils/actionTypes'
 import warning from './utils/warning'
+import isPlainObject from './utils/isPlainObject'
 
 function getUndefinedStateErrorMessage(key, action) {
   const actionType = action && action.type
@@ -46,6 +46,8 @@ function getUnexpectedStateShapeWarningMessage(inputState, reducers, action, une
   unexpectedKeys.forEach(key => {
     unexpectedKeyCache[key] = true
   })
+
+  if (action && action.type === ActionTypes.REPLACE) return
 
   if (unexpectedKeys.length > 0) {
     return (

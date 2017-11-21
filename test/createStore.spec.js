@@ -1,5 +1,13 @@
-import { createStore, combineReducers } from '../src/index'
-import { addTodo, dispatchInMiddle, throwError, unknownAction } from './helpers/actionCreators'
+import { createStore, combineReducers } from '../'
+import {
+  addTodo,
+  dispatchInMiddle,
+  getStateInMiddle,
+  subscribeInMiddle,
+  unsubscribeInMiddle,
+  throwError,
+  unknownAction
+} from './helpers/actionCreators'
 import * as reducers from './helpers/reducers'
 import * as Rx from 'rxjs'
 import $$observable from 'symbol-observable'
@@ -461,6 +469,31 @@ describe('createStore', () => {
     ).toThrow(/may not dispatch/)
   })
 
+  it('does not allow getState() from within a reducer', () => {
+    const store = createStore(reducers.getStateInTheMiddleOfReducer)
+
+    expect(() =>
+      store.dispatch(getStateInMiddle(store.getState.bind(store)))
+    ).toThrow(/You may not call store.getState()/)
+  })
+
+  it('does not allow subscribe() from within a reducer', () => {
+    const store = createStore(reducers.subscribeInTheMiddleOfReducer)
+
+    expect(() =>
+      store.dispatch(subscribeInMiddle(store.subscribe.bind(store, () => {})))
+    ).toThrow(/You may not call store.subscribe()/)
+  })
+
+  it('does not allow unsubscribe from subscribe() from within a reducer', () => {
+    const store = createStore(reducers.unsubscribeInTheMiddleOfReducer)
+    const unsubscribe = store.subscribe(() => {})
+
+    expect(() =>
+      store.dispatch(unsubscribeInMiddle(unsubscribe.bind(store)))
+    ).toThrow(/You may not unsubscribe from a store/)
+  })
+
   it('recovers from an error within a reducer', () => {
     const store = createStore(reducers.errorThrowingReducer)
     expect(() =>
@@ -733,5 +766,31 @@ describe('createStore', () => {
 
       expect(results).toEqual([ { foo: 0, bar: 0, fromRx: true }, { foo: 1, bar: 0, fromRx: true } ])
     })
+  })
+
+  it('does not log an error if parts of the current state will be ignored by a nextReducer using combineReducers', () => {
+    const originalConsoleError = console.error
+    console.error = jest.fn()
+
+    const store = createStore(
+      combineReducers({
+        x: (s=0, a) => s,
+        y: combineReducers({
+          z: (s=0, a) => s,
+          w: (s=0, a) => s,
+        }),
+      })
+    )
+
+    store.replaceReducer(
+      combineReducers({
+        y: combineReducers({
+          z: (s=0, a) => s,
+        }),
+      })
+    )
+
+    expect(console.error.mock.calls.length).toBe(0)
+    console.error = originalConsoleError
   })
 })

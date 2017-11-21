@@ -1,6 +1,5 @@
 /* eslint-disable no-console */
-import { combineReducers } from '../src'
-import createStore, { ActionTypes } from '../src/createStore'
+import { createStore, combineReducers, __DO_NOT_USE__ActionTypes as ActionTypes } from '../'
 
 describe('Utils', () => {
   describe('combineReducers', () => {

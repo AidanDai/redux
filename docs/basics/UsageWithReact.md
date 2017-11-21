@@ -120,7 +120,7 @@ import PropTypes from 'prop-types'
 const Todo = ({ onClick, completed, text }) => (
   <li
     onClick={onClick}
-    style={{
+    style={ {
       textDecoration: completed ? 'line-through' : 'none'
     }}
   >
@@ -179,7 +179,7 @@ const Link = ({ active, children, onClick }) => {
 
   return (
     <a
-      href="#"
+      href=""
       onClick={e => {
         e.preventDefault()
         onClick()
@@ -235,12 +235,13 @@ To use `connect()`, you need to define a special function called `mapStateToProp
 ```js
 const getVisibleTodos = (todos, filter) => {
   switch (filter) {
-    case 'SHOW_ALL':
-      return todos
     case 'SHOW_COMPLETED':
       return todos.filter(t => t.completed)
     case 'SHOW_ACTIVE':
       return todos.filter(t => !t.completed)
+    case 'SHOW_ALL':
+    default:
+      return todos
   }
 }
 
