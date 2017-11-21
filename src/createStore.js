@@ -37,29 +37,36 @@ export const ActionTypes = {
  * and subscribe to changes.
  */
 export default function createStore(reducer, preloadedState, enhancer) {
+  // 当没有传入 preloadedState 参数，而直接传入 enhancer 时，将 preloadedState 赋值为 undefined
   if (typeof preloadedState === 'function' && typeof enhancer === 'undefined') {
     enhancer = preloadedState
     preloadedState = undefined
   }
 
+  // 当传入 enhancer 时
   if (typeof enhancer !== 'undefined') {
+    // enhancer 校验（必须为函数）
     if (typeof enhancer !== 'function') {
       throw new Error('Expected the enhancer to be a function.')
     }
 
+    // 返回 createStore middleware 处理过得 createStore 创建的 store
     return enhancer(createStore)(reducer, preloadedState)
   }
 
+  // reduce 参数校验（必须为函数）
   if (typeof reducer !== 'function') {
     throw new Error('Expected the reducer to be a function.')
   }
 
-  let currentReducer = reducer
-  let currentState = preloadedState
-  let currentListeners = []
-  let nextListeners = currentListeners
-  let isDispatching = false
+  // 闭包参数
+  let currentReducer = reducer          // 当前 reducer
+  let currentState = preloadedState     // 当前 state
+  let currentListeners = []             // 当前 listener
+  let nextListeners = currentListeners  // 下一组 listener
+  let isDispatching = false             // 是否正在 dispatch
 
+  // 从当前 listener 拷贝得到下一组 listener
   function ensureCanMutateNextListeners() {
     if (nextListeners === currentListeners) {
       nextListeners = currentListeners.slice()
@@ -103,8 +110,11 @@ export default function createStore(reducer, preloadedState, enhancer) {
       throw new Error('Expected listener to be a function.')
     }
 
+    // 是否添加相应的 listener 开关, 与 listener, unsubscribe 一一对应
     let isSubscribed = true
 
+    // 添加第一个 listener 时拷贝当前 listener 到下一组 listener
+    // 其余时候添加 listener 不会进行拷贝
     ensureCanMutateNextListeners()
     nextListeners.push(listener)
 
@@ -115,7 +125,8 @@ export default function createStore(reducer, preloadedState, enhancer) {
 
       isSubscribed = false
 
-      ensureCanMutateNextListeners()
+      ensureCanMutateNextListeners() // 不执行
+      // 移除添加的 listener
       const index = nextListeners.indexOf(listener)
       nextListeners.splice(index, 1)
     }
@@ -147,6 +158,7 @@ export default function createStore(reducer, preloadedState, enhancer) {
    * return something else (for example, a Promise you can await).
    */
   function dispatch(action) {
+    // action 校验（必须是对象）
     if (!isPlainObject(action)) {
       throw new Error(
         'Actions must be plain objects. ' +
@@ -154,6 +166,7 @@ export default function createStore(reducer, preloadedState, enhancer) {
       )
     }
 
+    // action.type 校验（必须是字符串）
     if (typeof action.type === 'undefined') {
       throw new Error(
         'Actions may not have an undefined "type" property. ' +
@@ -161,10 +174,12 @@ export default function createStore(reducer, preloadedState, enhancer) {
       )
     }
 
+    // 是否正在 dispatch
     if (isDispatching) {
       throw new Error('Reducers may not dispatch actions.')
     }
 
+    // 执行 reducer, 得到加工后的 state, 并保存为 currentState
     try {
       isDispatching = true
       currentState = currentReducer(currentState, action)
@@ -172,26 +187,33 @@ export default function createStore(reducer, preloadedState, enhancer) {
       isDispatching = false
     }
 
+    // currentListeners = nextListeners
+    // const listeners = currentListeners
     const listeners = currentListeners = nextListeners
     for (let i = 0; i < listeners.length; i++) {
       const listener = listeners[i]
       listener()
     }
 
+    // 返回 action
     return action
   }
 
   /**
    * Replaces the reducer currently used by the store to calculate the state.
+   * 代替当前用于计算 state 的 reducer
    *
    * You might need this if your app implements code splitting and you want to
    * load some of the reducers dynamically. You might also need this if you
    * implement a hot reloading mechanism for Redux.
+   * 如果你的应用程序执行代码分割，则可能需要这样；或者你想要动态的加载一些 reducer。
+   * 如果你为 Redux 实施热加载机制，则可能还需要此功能
    *
-   * @param {Function} nextReducer The reducer for the store to use instead.
+   * @param {Function} nextReducer The reducer for the store to use instead. // 用于 store 的 reducer 的替代品
    * @returns {void}
    */
   function replaceReducer(nextReducer) {
+    // nextReducer 校验 (必须为函数)
     if (typeof nextReducer !== 'function') {
       throw new Error('Expected the nextReducer to be a function.')
     }
